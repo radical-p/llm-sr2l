@@ -652,7 +652,7 @@ class LocalLLM(LLM):
         """
         super().__init__(samples_per_prompt)
 
-        url = "http://127.0.0.1:5000/completions"
+        url = "http://127.0.0.1:8000/completions"
         instruction_prompt = ("You are a helpful assistant tasked with discovering mathematical function structures for scientific systems. \
                              Complete the 'equation' function below, considering the physical meaning and relationships of inputs.\n\n")
         self._batch_inference = batch_inference
@@ -780,6 +780,9 @@ class HuggingFaceLLM(LLM):
         if model_name is None:
             model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
             
+        # url = "http://127.0.0.1:8000/completions"
+        url = "http://localhost:5000"
+        self._url = url
         self.model_name = model_name
         self._batch_inference = batch_inference
         self._trim = trim
@@ -800,11 +803,12 @@ class HuggingFaceLLM(LLM):
         try:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             self.use_multi_gpu = torch.cuda.device_count() > 1 or os.environ.get('ACCELERATE_USE_MULTI_GPU', 'false').lower() == 'true'
+            # breakpoint()
             
             # Special handling for LLaMA models with rope_scaling issues
             model_kwargs = {
                 # "attn_implementation": "flash_attention_2",
-                'torch_dtype': torch.float16 if torch.cuda.is_available() else torch.float32,
+                # 'torch_dtype': torch.float16 if torch.cuda.is_available() else torch.float32,
                 # 'device_map': "auto" if torch.cuda.is_available() else None,
                 'trust_remote_code': True,
                 'low_cpu_mem_usage': True,
@@ -824,27 +828,30 @@ class HuggingFaceLLM(LLM):
             #     except ImportError:
             #         pass
             
-            if self.use_multi_gpu:
-                # model_kwargs['device_map'] = 'auto'
-                # model_kwargs['device_map'] = {"": 0}
-                # Store that we're using distributed model
-                self.is_distributed = True
-            else:
-                # Single GPU or CPU setup
-                self.is_distributed = False
+            # if self.use_multi_gpu:
+            #     model_kwargs['device_map'] = 'auto'
+            #     # model_kwargs['device_map'] = {"": 0}
+            #     # Store that we're using distributed model
+            #     self.is_distributed = True
+            # else:
+            #     # Single GPU or CPU setup
+            #     self.is_distributed = False
                 
 
             ############# ADDED FOR ANALYSIS ########################
-            model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
-            # device_map=infer_auto_device_map(model)
-            device_map='cuda'
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_name, 
-                device_map=device_map,
-                trust_remote_code=True,
-                torch_dtype=torch.float16,  # Use half precision
-                low_cpu_mem_usage=True,
-            )
+            # model = AutoModelForCausalLM.from_pretrained(model_name, 
+            #                                             #  load_in_8bit=True,
+            #                                              **model_kwargs)
+            # # device_map=infer_auto_device_map(model)
+            # # device_map='cuda'
+            # device_map='auto'
+            # self.model = AutoModelForCausalLM.from_pretrained(
+            #     model_name, 
+            #     # device_map=device_map,
+            #     trust_remote_code=True,
+            #     # torch_dtype=torch.float16,  # Use half precision
+            #     low_cpu_mem_usage=True,
+            # )
             #########################################################
 
             # self.model = dispatch_model(self.model, device_map=device_map)
@@ -896,13 +903,13 @@ class HuggingFaceLLM(LLM):
                 all_samples = []
                 # response from llm model
                 if self._batch_inference:
-                    response = self._do_request(prompt)
+                    response = self._do_request_vllm(prompt)
                     for res in response:
                         all_samples.append(res)
                         
                 else:
                     for _ in range(self._samples_per_prompt):
-                        response = self._do_request(prompt)
+                        response = self._do_request_vllm(prompt)
                         all_samples.append(response)
 
                 # breakpoint()
@@ -919,7 +926,44 @@ class HuggingFaceLLM(LLM):
         """API sampling method - placeholder for consistency."""
         # Just call local method for now
         return self._draw_samples_local(prompt, config)
-
+    
+    
+    def _do_request_vllm(self, content: str) -> str:
+        content = content.strip('\n').strip()
+        
+        # Convert to OpenAI chat format for vLLM
+        messages = [{"role": "user", "content": content}]
+        
+        data = {
+            "model": "default",  # vLLM serves the loaded model as "default"
+            "messages": messages,
+            "max_tokens": 512,
+            "temperature": 0.8,
+            "top_p": 0.9,
+            "n": self._samples_per_prompt if self._batch_inference else 1,
+            "stream": False
+        }
+        
+        headers = {'Content-Type': 'application/json'}
+        # custom separate vllm server
+        response = requests.post(f"{self._url}/v1/chat/completions", data=json.dumps(data), headers=headers)
+        
+        # trl vllm server:
+        # response = requests.post(f"{self._url}/update_named_param/", data=json.dumps(data), headers=headers)
+        
+        if response.status_code == 200:
+            response_data = response.json()
+            content_list = []
+            
+            for choice in response_data.get("choices", []):
+                if "message" in choice and "content" in choice["message"]:
+                    content_list.append(choice["message"]["content"])
+            
+            return content_list if self._batch_inference else content_list[0]
+        else:
+            raise Exception(f"HTTP {response.status_code}: {response.text}")
+    
+    
     def _do_request(self, content: str) -> str:
         """Generate response using HuggingFace model - matches LocalLLM _do_request signature."""
         content = content.strip('\n').strip()
@@ -936,10 +980,12 @@ class HuggingFaceLLM(LLM):
         # if self.is_distributed:
         #     # For distributed models, move to the device of the first parameter
         #     target_device = infer_auto_device_map(self.model)
+        #     print("TARGET DEVICE:", target_device)
         #     inputs = {k: v.to(target_device) for k, v in inputs.items()}
         # else:
         #     # For single device models
         #     inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        
         
         # Move inputs to the same device as model (CUDA, MPS, or CPU)
         inputs = {k: v.to("cuda") for k, v in inputs.items()}
