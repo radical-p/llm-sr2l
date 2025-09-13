@@ -65,13 +65,13 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
     
     def _setup_grpo_trainer(self, learning_rate=1e-6):
         """Setup GRPO trainer configuration for offline training (version-compatible)."""
-        # if torch.cuda.is_available():
-        #     optim = "adamw_8bit"
-        #     use_bf16 = True
-        # else:
-        #     # Use standard AdamW for CPU/MPS compatibility
-        #     optim = "adamw_torch"
-            # use_bf16 = False
+        if torch.cuda.is_available():
+            optim = "adamw_8bit"
+            use_bf16 = True
+        else:
+            # Use standard AdamW for CPU/MPS compatibility
+            optim = "adamw_torch"
+            use_bf16 = False
         
         # Build kwargs and filter by GRPOConfig signature for compatibility across TRL versions
         import inspect
@@ -85,7 +85,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
     
         
         cfg_kwargs = {
-            'output_dir': f"./grpo_checkpoints/{self.problem_name}-adaptive/run4/episode{self.training_episodes}",
+            # 'output_dir': f"./grpo_checkpoints/{self.problem_name}-adaptive/run4/episode{self.training_episodes}",
             'learning_rate': learning_rate,
             'lr_scheduler_type': lr_scheduler_type,
             'warmup_steps': lr_scheduler_kwargs_dict["num_warmup_steps"],
@@ -96,8 +96,8 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             'use_liger_loss': (token_entropy_percentile_threshold == 0.0),
             'per_device_train_batch_size': 8,  # Reduced for stability
             'gradient_accumulation_steps': 8,
-            'max_prompt_length': 1024,
-            'max_completion_length': 512,
+            'max_prompt_length': 2048,
+            'max_completion_length': 768,
             'num_generations': 64,  # Reduced to match batch size
             'logging_steps': 1,
             'save_steps': 8,
@@ -106,18 +106,19 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             # Ensure finite training when dataloader has no length
             'max_steps': 8,
             'scale_rewards': True,
-            'max_grad_norm': 1.0,
+            # 'max_grad_norm': 1.0,
             'beta': 0.05,
             'epsilon': 0.2,
             'disable_dropout': True,
             'report_to': "wandb",
-            #vllm
-            # 'use_vllm': True,
-            # 'vllm_host': "localhost",
-            # 'vllm_port': 8000,
-            # "vllm_mode": "colocate", 
-            # "vllm_server_timeout": 1200
+            # vllm
+            "use_vllm": True, 
+            "vllm_mode": "server", 
+            "vllm_server_host": "localhost",
+            "vllm_server_port": 8000, 
+            "vllm_server_timeout": 1200
         }
+        # cfg_kwargs['output_dir'] = f"./grpo_checkpoints/{self.problem_name}-adaptive-{self.model_name}-r{8}-ga{cfg_kwargs['gradient_accumulation_steps']}-g{cfg_kwargs['num_generations']}/run5/episode{self.training_episodes}"
 
         sig = inspect.signature(GRPOConfig.__init__)
         filtered_kwargs = {k: v for k, v in cfg_kwargs.items() if k in sig.parameters}
@@ -152,7 +153,6 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
         token_entropy_percentile_threshold = 0.0 # from https://huggingface/papers/2506.01939
         
         cfg_kwargs = {
-            'output_dir': f"./grpo_checkpoints/{self.problem_name}-adaptive/run4/episode{self.training_episodes}",
             'learning_rate': 1e-6,
             'lr_scheduler_type': lr_scheduler_type,
             'warmup_steps': lr_scheduler_kwargs_dict["num_warmup_steps"],
@@ -163,8 +163,8 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             'use_liger_loss': (token_entropy_percentile_threshold == 0.0),
             'per_device_train_batch_size': 8,  # Reduced for stability
             'gradient_accumulation_steps': 8,
-            'max_prompt_length': 1024,
-            'max_completion_length': 512,
+            'max_prompt_length': 2048,
+            'max_completion_length': 768,
             'num_generations': 64,  # Reduced to match batch size
             'logging_steps': 1,
             'save_steps': 8,
@@ -173,14 +173,21 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             # Ensure finite training when dataloader has no length
             'max_steps': 8,
             'scale_rewards': True,
-            'max_grad_norm': 1.0,
+            # 'max_grad_norm': 1.0,
             'beta': 0.05,
             'epsilon': 0.2,
             'disable_dropout': True,
             'report_to': "wandb",
             # Unique run_name for each episode
-            'run_name': f"episode-{self.training_episodes}-{self.model_name}-r{lora_cfg.r}-g{64}-{int(time.time() * 1000)}"
+            # vllm
+            "use_vllm": True, 
+            "vllm_mode": "server", 
+            "vllm_server_host": "localhost",
+            "vllm_server_port": 8000, 
+            "vllm_server_timeout": 1200
         }
+        cfg_kwargs['output_dir']= f"./grpo_checkpoints/{self.problem_name}-adaptive-{self.model_name.replace('Qwen/', '')}-r{lora_cfg.r}-ga{cfg_kwargs['gradient_accumulation_steps']}-g{cfg_kwargs['num_generations']}/episode{self.training_episodes}"
+        cfg_kwargs['run_name']= f"episode-{self.training_episodes}-{self.model_name}-r{lora_cfg.r}-ga{cfg_kwargs['gradient_accumulation_steps']}-ng{cfg_kwargs['num_generations']}-{int(time.time() * 1000)}"
 
         sig = inspect.signature(GRPOConfig.__init__)
         filtered_kwargs = {k: v for k, v in cfg_kwargs.items() if k in sig.parameters}
@@ -809,7 +816,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
 
             log_dir = "./grpo_reward_logs"
             os.makedirs(log_dir, exist_ok=True)
-            log_file = os.path.join(log_dir, "rewards_log_run4.txt")
+            log_file = os.path.join(log_dir, "rewards_log.txt")
 
             with open(log_file, "a") as f:
                 f.write(f"Episode {self.training_episodes}\n")
@@ -832,7 +839,8 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
 
             # Create a new config for this training episode
             import os
-            import wandb
+            # import wandb
+            from c1_aiml_aem import wandb
             
             # Finish any existing WandB run to ensure clean separation
             if wandb.run is not None:
@@ -840,7 +848,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
                 wandb.finish()
             
             # Set WandB environment variables
-            os.environ["WANDB_PROJECT"] = f"llmsr-grpo-{self.problem_name}-adaptive-run4-single-gpu"
+            os.environ["WANDB_PROJECT"] = f"llmsr-grpo-{self.problem_name}-adaptive-single-gpu"
             os.environ["WANDB_MODE"] = "online"  # Ensure online mode
             
             # Create a fresh config with unique run_name for this episode
@@ -875,7 +883,8 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             print("Model set to evaluation mode")
             
             # Finish WandB run for this episode
-            import wandb
+            # import wandb
+            from c1_aiml_aem import wandb
             if wandb.run is not None:
                 print(f"Finishing WandB run for episode {self.training_episodes}: {wandb.run.name}")
                 wandb.finish()
