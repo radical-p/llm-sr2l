@@ -1,6 +1,6 @@
 CUDA_VISIBLE_DEVICES=7 \
 python -m vllm.entrypoints.openai.api_server \
-    --model /home/jovyan/nly934-storage/models/Llama-3.2-1B-Instruct \
+    --model Qwen/Qwen2.5-3B-Instruct \
     --port 5000 \
     --host 127.0.0.1 \
     --served-model-name default \
