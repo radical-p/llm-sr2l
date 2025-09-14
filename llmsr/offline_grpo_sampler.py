@@ -86,6 +86,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
         
         cfg_kwargs = {
             # 'output_dir': f"./grpo_checkpoints/{self.problem_name}-adaptive/run4/episode{self.training_episodes}",
+            'bf16': True,
             'learning_rate': learning_rate,
             'lr_scheduler_type': lr_scheduler_type,
             'warmup_steps': lr_scheduler_kwargs_dict["num_warmup_steps"],
