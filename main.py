@@ -20,6 +20,7 @@ parser.add_argument('--spec_path', type=str)
 parser.add_argument('--log_path', type=str, default="./logs/oscillator2")
 parser.add_argument('--problem_name', type=str, default="oscillator2")
 parser.add_argument('--run_id', type=int, default=1)
+parser.add_argument('--n_prompts', type=int, default=10)
 parser.add_argument('--hf_model', type=str, default="Qwen/Qwen2.5-1.5B-Instruct")
 parser.add_argument('--grpo_learning_rate', type=float, default=1e-6)
 parser.add_argument('--use_offline_grpo', type=bool, default=False)
@@ -45,13 +46,15 @@ if __name__ == '__main__':
         print("Using standard HuggingFace model")
         
     llm_class.problem_name = args.problem_name
+    llm_class.n_prompts = args.n_prompts
     class_config = config.ClassConfig(llm_class=llm_class, sandbox_class=evaluator.LocalSandbox)
     config = config.Config(use_api = args.use_api, 
                            api_model = args.api_model,
                            hf_model = args.hf_model,
                            grpo_learning_rate = args.grpo_learning_rate,
                            use_offline_grpo = args.use_offline_grpo,
-                           use_atomsr = args.use_atomsr)
+                           use_atomsr = args.use_atomsr,
+                           n_prompts = args.n_prompts)
     global_max_sample_num = 10000 
 
     # Load prompt specification
