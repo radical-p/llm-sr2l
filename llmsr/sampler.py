@@ -839,19 +839,19 @@ class HuggingFaceLLM(LLM):
                 
 
             ############# ADDED FOR ANALYSIS ########################
-            # model = AutoModelForCausalLM.from_pretrained(model_name, 
-            #                                             #  load_in_8bit=True,
-            #                                              **model_kwargs)
-            # # device_map=infer_auto_device_map(model)
-            # # device_map='cuda'
-            # device_map='auto'
-            # self.model = AutoModelForCausalLM.from_pretrained(
-            #     model_name, 
-            #     # device_map=device_map,
-            #     trust_remote_code=True,
-            #     # torch_dtype=torch.float16,  # Use half precision
-            #     low_cpu_mem_usage=True,
-            # )
+            model = AutoModelForCausalLM.from_pretrained(model_name, 
+                                                        #  load_in_8bit=True,
+                                                         **model_kwargs)
+            # device_map=infer_auto_device_map(model)
+            # device_map='cuda'
+            device_map='auto'
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name, 
+                # device_map=device_map,
+                trust_remote_code=True,
+                # torch_dtype=torch.float16,  # Use half precision
+                low_cpu_mem_usage=True,
+            )
             #########################################################
 
             # self.model = dispatch_model(self.model, device_map=device_map)
