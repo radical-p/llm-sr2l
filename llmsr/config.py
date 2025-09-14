@@ -72,6 +72,7 @@ class Config:
     grpo_learning_rate: float = 1e-6
     use_offline_grpo: bool = False
     use_atomsr: bool = False
+    n_prompts: int = 100
 
 
 @dataclasses.dataclass()
