@@ -876,11 +876,11 @@ class HuggingFaceLLM(LLM):
         
         # breakpoint()
         # Set pad token if not exists
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
+        # if self.tokenizer.pad_token is None:
+        #     self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # self.tokenizer.pad_token = "[PAD]"
-        # self.tokenizer.padding_side = "left"
+        # # self.tokenizer.pad_token = "[PAD]"
+        # # self.tokenizer.padding_side = "left"
 
         
         self.model.eval()
