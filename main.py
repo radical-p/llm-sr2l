@@ -44,6 +44,7 @@ if __name__ == '__main__':
         llm_class = sampler.HuggingFaceLLM
         print("Using standard HuggingFace model")
         
+    llm_class.problem_name = args.problem_name
     class_config = config.ClassConfig(llm_class=llm_class, sandbox_class=evaluator.LocalSandbox)
     config = config.Config(use_api = args.use_api, 
                            api_model = args.api_model,
