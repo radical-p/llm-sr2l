@@ -89,7 +89,7 @@ class Sampler:
             self._llm = llm_class(samples_per_prompt, model_name=config.hf_model)
         elif llm_class.__name__ == 'OfflineGRPOHuggingFaceLLM':
             try:
-                self._llm = llm_class(samples_per_prompt, model_name=config.hf_model)
+                self._llm = llm_class(samples_per_prompt, model_name=config.hf_model, learning_rate=config.grpo_learning_rate)
             except TypeError:
                 self._llm = llm_class(samples_per_prompt)
         else:
