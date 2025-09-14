@@ -66,12 +66,12 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
     def _setup_grpo_trainer(self, learning_rate=1e-6):
         """Setup GRPO trainer configuration for offline training (version-compatible)."""
         if torch.cuda.is_available():
-            optim = "adamw_8bit"
+            # optim = "adamw_8bit"
             use_bf16 = True
-        else:
-            # Use standard AdamW for CPU/MPS compatibility
-            optim = "adamw_torch"
-            use_bf16 = False
+        # else:
+        #     # Use standard AdamW for CPU/MPS compatibility
+        #     optim = "adamw_torch"
+        #     use_bf16 = False
         
         # Build kwargs and filter by GRPOConfig signature for compatibility across TRL versions
         import inspect
