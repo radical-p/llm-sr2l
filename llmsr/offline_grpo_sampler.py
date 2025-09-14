@@ -94,7 +94,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             'mask_truncated_completions': False,
             'temperature': 0.8,
             'top_p': 0.9,
-            'loss_type': "dr_grpo",
+            'loss_type': "bnpo",
             'use_liger_loss': (token_entropy_percentile_threshold == 0.0),
             'per_device_train_batch_size': 8,  # Reduced for stability
             'gradient_accumulation_steps': 8,
@@ -162,6 +162,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             'mask_truncated_completions': False,
             'temperature': 0.8,
             'top_p': 0.9,
+            'loss_type': "bnpo",
             'use_liger_loss': (token_entropy_percentile_threshold == 0.0),
             'per_device_train_batch_size': 8,  # Reduced for stability
             'gradient_accumulation_steps': 8,
