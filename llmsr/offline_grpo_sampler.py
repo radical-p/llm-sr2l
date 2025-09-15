@@ -892,7 +892,6 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             
             # Finish WandB run for this episode
             # import wandb
-            from c1_aiml_aem import wandb
             if wandb.run is not None:
                 print(f"Finishing WandB run for episode {self.training_episodes}: {wandb.run.name}")
                 wandb.finish()

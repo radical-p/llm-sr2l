@@ -839,8 +839,8 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
 
             # Create a new config for this training episode
             import os
-            # import wandb
-            from c1_aiml_aem import wandb
+            import wandb
+            # from c1_aiml_aem import wandb
             
             # Finish any existing WandB run to ensure clean separation
             if wandb.run is not None:
