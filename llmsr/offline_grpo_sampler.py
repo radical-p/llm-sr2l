@@ -1025,9 +1025,10 @@ class OfflineGRPOSampler(Sampler):
                 if (self.__class__._global_samples_nums - 1) % self.config.n_prompts == 0:
                     print("Triggering offline GRPO training after this iteration...")
                     self._llm.train_with_offline_grpo()
+                    self.samples_since_training = 0
                     break
                 
-                self.samples_since_training = 0
+                
 
                 # breakpoint()
     
