@@ -625,7 +625,6 @@ def _extract_body(sample: str, config: "config_lib.Config") -> str:
 
     body_lines = strip_trailing_blanks(body_lines)
     if not body_lines:
-            return ""
         return sample.strip()
 
     dedented = [(l[body_indent:] if l.startswith(" " * body_indent) else l.lstrip()) if l.strip() else "" for l in body_lines]
