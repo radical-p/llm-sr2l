@@ -586,7 +586,7 @@ def _extract_body(sample: str, config: "config_lib.Config") -> str:
             cleaned.append(ln)
         cleaned = strip_trailing_blanks(cleaned)
         code = "\n".join(dedent_block(cleaned)).strip()
-        if not code and config.use_api:
+        if not code:
             return ""
         if not code:
             return sample.strip()
@@ -624,8 +624,7 @@ def _extract_body(sample: str, config: "config_lib.Config") -> str:
 
     body_lines = strip_trailing_blanks(body_lines)
     if not body_lines:
-        if config.use_api:
-            return ""
+        return ""
         return sample.strip()
 
     dedented = [(l[body_indent:] if l.startswith(" " * body_indent) else l.lstrip()) if l.strip() else "" for l in body_lines]
@@ -635,12 +634,11 @@ def _extract_body(sample: str, config: "config_lib.Config") -> str:
     dedented = truncate_after_first_return(dedented)
 
     code = "\n".join(dedented).strip()
-    if not code and config.use_api:
+    if not code:
         return ""
     if not code:
         return sample.strip()
-    if not config.use_api:
-        code = "\n".join(("    " + l.strip() if l.strip() else "") for l in code.splitlines())
+    code = "\n".join(("    " + l.strip() if l.strip() else "") for l in code.splitlines())
     return code
 
 
