@@ -115,7 +115,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             "use_vllm": True, 
             "vllm_mode": "server", 
             "vllm_server_host": "localhost",
-            "vllm_server_port": 8000, 
+            "vllm_server_port": 8003, 
             "vllm_server_timeout": 1200
         }
         # cfg_kwargs['output_dir'] = f"./grpo_checkpoints/{self.problem_name}-adaptive-{self.model_name}-r{8}-ga{cfg_kwargs['gradient_accumulation_steps']}-g{cfg_kwargs['num_generations']}/run5/episode{self.training_episodes}"
@@ -183,7 +183,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             "use_vllm": True, 
             "vllm_mode": "server", 
             "vllm_server_host": "localhost",
-            "vllm_server_port": 8000, 
+            "vllm_server_port": 8003, 
             "vllm_server_timeout": 1200
         }
         cfg_kwargs['output_dir']= f"./grpo_checkpoints/{self.problem_name}-adaptive-{self.model_name.replace('Qwen/', '')}-r{lora_cfg.r}-ga{cfg_kwargs['gradient_accumulation_steps']}-g{cfg_kwargs['num_generations']}/episode{self.training_episodes}"

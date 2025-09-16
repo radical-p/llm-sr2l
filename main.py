@@ -26,6 +26,8 @@ parser.add_argument('--grpo_learning_rate', type=float, default=1e-6)
 parser.add_argument('--use_offline_grpo', type=bool, default=False)
 parser.add_argument('--use_atomsr', type=bool, default=False)
 parser.add_argument('--use_wandb', type=bool, default=True)
+parser.add_argument('--llmsr_port', type=int, default=None, help='Port for LLMSR vLLM server (for inference)')
+parser.add_argument('--trl_port', type=int, default=None, help='Port for TRL vLLM server (for GRPO training)')
 args = parser.parse_args()
 
 
@@ -47,6 +49,12 @@ if __name__ == '__main__':
         
     llm_class.problem_name = args.problem_name
     llm_class.n_prompts = args.n_prompts
+    
+    # Set port environment variables for the LLM classes
+    if args.llmsr_port is not None:
+        os.environ['LLMSR_PORT'] = str(args.llmsr_port)
+    if args.trl_port is not None:
+        os.environ['TRL_PORT'] = str(args.trl_port)
     class_config = config.ClassConfig(llm_class=llm_class, sandbox_class=evaluator.LocalSandbox)
     config = config.Config(use_api = args.use_api, 
                            api_model = args.api_model,

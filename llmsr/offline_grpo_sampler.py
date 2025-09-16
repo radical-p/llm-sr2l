@@ -4,6 +4,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 import time
+import os
 from typing import Sequence, Type, List, Dict, Any
 import re
 from .sampler import HuggingFaceLLM, Sampler, LLM
@@ -84,6 +85,9 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
         # loss_type = `bnpo` => helps remove length bias if per_device_train_batch_size > 1
     
         
+        # Read TRL (training-time vLLM) port from environment (fallback to 8003)
+        trl_port = int(os.environ.get("TRL_PORT", "8003"))
+
         cfg_kwargs = {
             # 'output_dir': f"./grpo_checkpoints/{self.problem_name}-adaptive/run4/episode{self.training_episodes}",
             # 'bf16': True,
@@ -96,7 +100,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             'top_p': 0.9,
             'loss_type': "bnpo",
             'use_liger_loss': (token_entropy_percentile_threshold == 0.0),
-            'per_device_train_batch_size': 16,  # Reduced for stability
+            'per_device_train_batch_size': 16,
             'gradient_accumulation_steps': 4,
             'max_prompt_length': 2048,
             'max_completion_length': 768,
@@ -117,7 +121,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             "use_vllm": True, 
             "vllm_mode": "server", 
             "vllm_server_host": "localhost",
-            "vllm_server_port": 8000, 
+            "vllm_server_port": trl_port,
             "vllm_server_timeout": 1200
         }
         cfg_kwargs['output_dir'] = f"./grpo_checkpoints/{self.problem_name}-adaptive-{self.model_name}-r{8}-ga{cfg_kwargs['gradient_accumulation_steps']}-g{cfg_kwargs['num_generations']}-lr{learning_rate}/nprompt{self.n_prompts}"
@@ -154,6 +158,9 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
         lr_scheduler_kwargs_dict = lr_scheduler_kwargs.default_factory()
         token_entropy_percentile_threshold = 0.0 # from https://huggingface/papers/2506.01939
         
+        # Read TRL (training-time vLLM) port from environment (fallback to 8003)
+        trl_port = int(os.environ.get("TRL_PORT", "8003"))
+
         cfg_kwargs = {
             'learning_rate': 1e-6,
             'lr_scheduler_type': lr_scheduler_type,
@@ -186,7 +193,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             "use_vllm": True, 
             "vllm_mode": "server", 
             "vllm_server_host": "localhost",
-            "vllm_server_port": 8000, 
+            "vllm_server_port": trl_port, 
             "vllm_server_timeout": 1200
         }
         cfg_kwargs['output_dir']= f"./grpo_checkpoints/{self.problem_name}-adaptive-{self.model_name.replace('Qwen/', '')}-r{lora_cfg.r}-ga{cfg_kwargs['gradient_accumulation_steps']}-g{cfg_kwargs['num_generations']}/episode{self.training_episodes}"
@@ -819,7 +826,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
 
             log_dir = "./grpo_reward_logs"
             os.makedirs(log_dir, exist_ok=True)
-            log_file = os.path.join(log_dir, "rewards_log_{self.problem_name}_nprompt{self.n_prompts}.txt")
+            log_file = os.path.join(log_dir, f"rewards_log_{self.problem_name}_nprompt{self.n_prompts}.txt")
 
             with open(log_file, "a") as f:
                 f.write(f"Episode {self.training_episodes}\n")
@@ -891,7 +898,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             print("Model set to evaluation mode")
             
             # Finish WandB run for this episode
-            # import wandb
+            import wandb
             if wandb.run is not None:
                 print(f"Finishing WandB run for episode {self.training_episodes}: {wandb.run.name}")
                 wandb.finish()
@@ -1024,9 +1031,10 @@ class OfflineGRPOSampler(Sampler):
                 if (self.__class__._global_samples_nums - 1) % self.config.n_prompts == 0:
                     print("Triggering offline GRPO training after this iteration...")
                     self._llm.train_with_offline_grpo()
+                    self.samples_since_training = 0
                     break
                 
-                self.samples_since_training = 0
+                
 
                 # breakpoint()
     

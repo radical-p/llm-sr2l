@@ -1,25 +1,10 @@
-# Copyright 2023 DeepMind Technologies Limited
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-
-""" Class for sampling new program skeletons. """
 from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from typing import Collection, Sequence, Type
 import numpy as np
 import time
+import os
 
 from llmsr import evaluator
 from llmsr import evaluator2
@@ -377,6 +362,7 @@ def _extract_body_v2(sample: str, config: "config_lib.Config") -> str:
     return code
 
 
+
 def _extract_body(sample: str, config: "config_lib.Config") -> str:
     """
     Extract the first code block that represents the continuation/body of equation_v1
@@ -625,7 +611,6 @@ def _extract_body(sample: str, config: "config_lib.Config") -> str:
     body_lines = strip_trailing_blanks(body_lines)
     if not body_lines:
         return ""
-        return sample.strip()
 
     dedented = [(l[body_indent:] if l.startswith(" " * body_indent) else l.lstrip()) if l.strip() else "" for l in body_lines]
     dedented = strip_trailing_blanks(dedented)
@@ -638,8 +623,11 @@ def _extract_body(sample: str, config: "config_lib.Config") -> str:
         return ""
     if not code:
         return sample.strip()
+
     code = "\n".join(("    " + l.strip() if l.strip() else "") for l in code.splitlines())
     return code
+
+
 
 
 class LocalLLM(LLM):
@@ -650,7 +638,9 @@ class LocalLLM(LLM):
         """
         super().__init__(samples_per_prompt)
 
-        url = "http://127.0.0.1:8000/completions"
+        # Get LLMSR port from environment variable or use default
+        llmsr_port = os.environ.get('LLMSR_PORT', '5000')
+        url = f"http://127.0.0.1:{llmsr_port}/completions"
         instruction_prompt = ("You are a helpful assistant tasked with discovering mathematical function structures for scientific systems. \
                              Complete the 'equation' function below, considering the physical meaning and relationships of inputs.\n\n")
         self._batch_inference = batch_inference
@@ -778,8 +768,9 @@ class HuggingFaceLLM(LLM):
         if model_name is None:
             model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
             
-        # url = "http://127.0.0.1:8000/completions"
-        url = "http://localhost:5000"
+        # Get LLMSR port from environment variable or use default
+        llmsr_port = os.environ.get('LLMSR_PORT', '5000')
+        url = f"http://localhost:{llmsr_port}"
         self._url = url
         self.model_name = model_name
         self._batch_inference = batch_inference

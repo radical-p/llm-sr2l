@@ -132,7 +132,7 @@ class OfflineGRPOHuggingFaceLLM(HuggingFaceLLM):
             #vllm
             'use_vllm': True,
             'vllm_host': "localhost",
-            'vllm_port': 8000,
+            'vllm_port': 8003,
             "vllm_mode": "colocate", 
             "vllm_server_timeout": 1200
         }
