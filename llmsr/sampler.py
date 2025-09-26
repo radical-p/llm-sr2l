@@ -562,6 +562,7 @@ def _extract_body(sample: str, config: "config_lib.Config") -> str:
 
     # ---------- Main extraction logic ----------
     func_start = find_func_start(lines)
+    
 
     if func_start is None:
         # No function found at all: treat entire sample as a continuation body and cut after first `return`
@@ -591,7 +592,38 @@ def _extract_body(sample: str, config: "config_lib.Config") -> str:
             return ""
         if not code:
             return sample.strip()
+        
+        
+        # If the code is wrapped in a ```python ... ``` code block, extract only the body
+        import re
+        code_block_match = re.match(r"^```(?:python)?\s*([\s\S]*?)\s*```$", code.strip(), re.DOTALL)
+        if code_block_match:
+            code = code_block_match.group(1).strip("\n")
+        code_block_match = re.match(r"^```(?:python)?\s*([\s\S]*?)\s*$", code.strip(), re.DOTALL)
+        if code_block_match:
+            code = code_block_match.group(1).strip("\n")
+        lines = code.splitlines()
+        if not lines:
+            return ""
+        has_return = any(l.strip().startswith("return") for l in lines if l.strip() and not l.strip().startswith("#"))
+        if not has_return and lines:
+            *body, last = lines
+            last_stripped = last.strip()
+            if "=" in last_stripped:
+                # If the last line is in the form "... = ...", extract the variable name before '='
+                var_name = last_stripped.split("=", 1)[0].strip()
+                # Only add return if var_name is a valid identifier
+                if var_name and var_name.replace("_", "").isalnum():
+                    code = "\n".join(body + [last, f"return {var_name}"])
+                else:
+                    # fallback: just add return to the last line
+                    code = "\n".join(body + [f"return {last_stripped}"])
+            elif not last_stripped.startswith("return"):
+                code = "\n".join(body + [f"return {last_stripped}"])
+            else:
+                code = "\n".join(body + [last])
         code = "\n".join(("    " + l.strip() if l.strip() else "") for l in code.splitlines())
+
         return code
 
     # There is a function: first try to extract its body as before
@@ -639,7 +671,36 @@ def _extract_body(sample: str, config: "config_lib.Config") -> str:
     if not code:
         return sample.strip()
 
+    # If the code is wrapped in a ```python ... ``` code block, extract only the body
+    import re
+    code_block_match = re.match(r"^```(?:python)?\s*([\s\S]*?)\s*```$", code.strip(), re.DOTALL)
+    if code_block_match:
+        code = code_block_match.group(1).strip("\n")
+    code_block_match = re.match(r"^```(?:python)?\s*([\s\S]*?)\s*$", code.strip(), re.DOTALL)
+    if code_block_match:
+        code = code_block_match.group(1).strip("\n")
+    lines = code.splitlines()
+    if not lines:
+        return ""
+    has_return = any(l.strip().startswith("return") for l in lines if l.strip() and not l.strip().startswith("#"))
+    if not has_return and lines:
+        *body, last = lines
+        last_stripped = last.strip()
+        if "=" in last_stripped:
+            # If the last line is in the form "... = ...", extract the variable name before '='
+            var_name = last_stripped.split("=", 1)[0].strip()
+            # Only add return if var_name is a valid identifier
+            if var_name and var_name.replace("_", "").isalnum():
+                code = "\n".join(body + [last, f"return {var_name}"])
+            else:
+                # fallback: just add return to the last line
+                code = "\n".join(body + [f"return {last_stripped}"])
+        elif not last_stripped.startswith("return"):
+            code = "\n".join(body + [f"return {last_stripped}"])
+        else:
+            code = "\n".join(body + [last])
     code = "\n".join(("    " + l.strip() if l.strip() else "") for l in code.splitlines())
+
     return code
 
 
